@@ -96,6 +96,7 @@ const updateRow = async (table, id, params = {}) => {
 
     const client = await pool.connect();
     try {
+        console.log(query, paramValues)
         const { rows } = await client.query(query, paramValues);
         if (rows.length === 0) {
             throw new Error(`No row found with id: ${id}`);

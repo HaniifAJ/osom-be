@@ -1,38 +1,28 @@
 const userRepository = require('../repository/userRepository')
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
-const { TERCES } = require('../config') 
 
-const registerUser = async (payload) => {
+const updateAvatar = async (user_id, avatar_id) => {
     try {
-        const hashedPassword = await bcrypt.hash(payload.password, 10)
-        const result = await userRepository.registerUser({...payload, password: hashedPassword})
+        const result = await userRepository.updateAvatar(user_id, avatar_id)
         console.log('controller:', result)
         return result
     } catch (error) {
-        console.error('scope: userController, registerUser:', error)
+        console.error('scope: userController, updateAvatar:', error)
         throw error
     }
 }
 
-const loginUser = async (payload) => {
+const getMyData = async (userId) => {
     try {
-        const checkUser = await userRepository.getUserByEmail(payload.email)
-        const checkPassword = await bcrypt.compare(payload.password, checkUser.password)
-        if(!checkPassword){
-            throw new Error('Email or password is invalid')
-        }
-        const token = jwt.sign({userId: checkUser.id, userData: checkUser}, TERCES, {
-            expiresIn: '1h'
-        })
-        return token
+        const result = await userRepository.getUserById(userId)
+        console.log('controller:', result)
+        return result
     } catch (error) {
+        console.error('scope: userController, getMyData:', error)
         throw error
     }
 }
-
 
 module.exports = {
-    registerUser,
-    loginUser,
+    updateAvatar,
+    getMyData
 }

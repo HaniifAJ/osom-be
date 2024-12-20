@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const validator = require('../validators/index')
-const userController = require('../controllers/userController')
+const authController = require('../controllers/authController')
 
 router.post('/register', async (req, res) => {
     const { body } = req
@@ -11,12 +11,12 @@ router.post('/register', async (req, res) => {
         return
     }
     try {
-        const data = await userController.registerUser(value);
+        const data = await authController.registerUser(value);
         console.log('data', data)
         res.status(201).send({message: 'user registered', data: data})
     } catch (error) {
         console.error('error register route:', error)
-        res.status(400).send(error.message)
+        res.status(500).send(error.message)
     }
 })
 
@@ -28,12 +28,12 @@ router.post('/login', async (req, res) => {
         return
     }
     try {
-        const data = await userController.loginUser(value);
+        const data = await authController.loginUser(value);
         console.log('data', data)
         res.status(201).send({message: 'login successful', token: data})
     } catch (error) {
         console.log('error register route:', error)
-        res.status(400).send(error.message)
+        res.status(500).send(error.message)
     }
 })
 
