@@ -11,7 +11,12 @@ const loginSchema = Joi.object({
   password: Joi.string().min(8).max(20).required(),
 });
 
+const updateAvatarSchema = Joi.object({
+  avatar_id: Joi.number().required()
+});
+
 module.exports = {
   createUserSchema,
-  loginSchema
+  loginSchema,
+  updateAvatarSchema,
 }
