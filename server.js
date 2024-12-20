@@ -1,5 +1,6 @@
 const express = require('express');
 const router = require('./routes');
+const { PORT } = require('./config')
 
 const app = express()
 
@@ -8,6 +9,6 @@ app.use(express.json());
 
 app.use('/api/v1', router)
 
-app.listen(3000, () => {
-  console.log(`Server running on http://localhost:3000`);
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
