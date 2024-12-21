@@ -13,6 +13,49 @@ const getUserById = async (id) => {
     }
 }
 
+const getUserRank = async (userId) => {
+    try {
+        const queryString = `SELECT COUNT(*) + 1 AS rank
+                        FROM users
+                        WHERE highscore > (SELECT highscore FROM users WHERE id = ${userId});`
+        const result = await db.query(queryString)
+        if(result.length == 0) {
+            throw new Error('User not found')
+        }
+        return result[0]
+    } catch (error) {
+        console.error('scope: userRepository, getUserRank:', error)
+        throw error
+    }
+}
+
+const getLeaderboard = async () => {
+    try {
+        const queryString = `SELECT 
+                                id, 
+                                fullname, 
+                                highscore, 
+                                ROW_NUMBER () OVER (
+                                    ORDER BY
+                                        highscore
+                                    DESC
+                                    ) as rank
+                                FROM (
+                                    SELECT * FROM users WHERE highscore > 0
+                                    ) as activeUser
+                                ORDER BY highscore DESC
+                                LIMIT 1000;`
+        const result = await db.query(queryString)
+        if(result.length == 0) {
+            throw new Error('User not found')
+        }
+        return result
+    } catch (error) {
+        console.error('scope: userRepository, getUserRank:', error)
+        throw error
+    }
+}
+
 const getUserByEmail = async (email) => {
     try {
         const result = await db.getDataByParam('users', {email: email})
@@ -76,6 +119,8 @@ const updateTotalMatch = async (userId, totalMatch) => {
 module.exports = {
     getUserById,
     getUserByEmail,
+    getUserRank,
+    getLeaderboard,
     registerUser,
     updateAvatar,
     updateHighscoreMatch,
