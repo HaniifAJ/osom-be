@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
     try {
         const data = await authController.loginUser(value);
         console.log('data', data)
-        res.status(201).send({message: 'login successful', token: data})
+        res.status(201).send({message: 'login successful', data: {token: data}})
     } catch (error) {
         console.log('error register route:', error)
         res.status(500).send(error.message)

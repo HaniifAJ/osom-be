@@ -8,6 +8,32 @@ const pool = new Pool({
   },
 });
 
+const query = async (queryString) => {
+    const client = await pool.connect();
+    try {
+        const { rows } = await client.query(queryString);
+        return rows;
+    } catch (error) {
+        console.error(`Error getting data with query ${queryString}: `, error.message)
+        throw error
+    } finally {
+        client.release();
+    }
+}
+
+const queryValues = async (queryString, values = []) => {
+    const client = await pool.connect();
+    try {
+        const { rows } = await client.query(queryString, values);
+        return rows;
+    } catch (error) {
+        console.error(`Error getting data with query ${queryString} and values ${values}: `, error.message)
+        throw error
+    } finally {
+        client.release();
+    }
+}
+
 const getAllData = async (table) => {
     const client = await pool.connect();
     try {
@@ -134,6 +160,8 @@ const deleteRow = async (table, id) => {
 
 module.exports = {
     pool,
+    query,
+    queryValues,
     getAllData,
     getDataByParam,
     insertRow,

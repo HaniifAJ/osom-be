@@ -43,15 +43,19 @@ const updateMatch = async (userId, payload) => {
         const computerMove = moves[Math.floor(Math.random() * 3)]
         const checkWin = gameLogic(payload.move, computerMove)
         let multiplier = 1
-        if(match.winstreak + 1 >= 5) multiplier = 2
-        if(match.winstreak + 1 >= 10) multiplier = 3
+        if(match.winstreak + 1 >= 3) multiplier = 2
+        if(match.winstreak + 1 >= 5) multiplier = 3
+        if(match.winstreak + 1 >= 10) multiplier = 5
 
         let dmgMultiplier = 1
         if(match.mode == 'hard' && match.level > 9) dmgMultiplier = 2
         if(match.mode == 'hard' && match.level > 29) dmgMultiplier = 3
 
+        let addedHealth = 0
+
         if(checkWin < 0) {
-            match.health -= 1*dmgMultiplier
+            addedHealth = -1*dmgMultiplier
+            match.health += addedHealth
             match.winstreak = 0
 
             if(match.health <= 0) {
@@ -68,7 +72,7 @@ const updateMatch = async (userId, payload) => {
                     result: 'Lose',
                     player_move: payload.move,
                     computer_move: computerMove,
-                    data_now: match,
+                    data: { ...match, addedHealth: addedHealth},
                     match_details: result
                 }
                 const checkUser = await userRepository.getUserById(userId)
@@ -88,7 +92,7 @@ const updateMatch = async (userId, payload) => {
                 result: 'Lose',
                 player_move: payload.move,
                 computer_move: computerMove,
-                data_now: match
+                data: { ...match, addedHealth: addedHealth},
             }
             return responseData
         }
@@ -100,14 +104,19 @@ const updateMatch = async (userId, payload) => {
                 result: 'Draw',
                 player_move: payload.move,
                 computer_move: computerMove,
-                data_now: match
+                data: { ...match, addedHealth: addedHealth},
             }
             return responseData
         }
 
         match.level += 1
-        match.score += checkWin*multiplier
+        match.score += 100*checkWin*multiplier
         match.winstreak += 1
+
+        if(match.mode=='somethingspecial' && level % 5 == 0) {
+            addedHealth = 1
+            match.health += addedHealth
+        }
 
         const responseData = {
             message: 'You win',
@@ -115,7 +124,7 @@ const updateMatch = async (userId, payload) => {
             result: 'Win',
             player_move: payload.move,
             computer_move: computerMove,
-            data_now: match
+            data: { ...match, addedHealth: addedHealth},
         }
         return responseData
     } catch (error) {
