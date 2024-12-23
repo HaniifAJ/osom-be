@@ -11,7 +11,7 @@ const io = new Server(server);
 app.set('socketio', io)
 
 const socketConnectionRoutes = require('./routes/socketRoute')
-io.on('connection', socketConnectionRoutes);
+io.on('connection', (socket) => socketConnectionRoutes(socket));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

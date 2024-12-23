@@ -4,8 +4,10 @@ const { TERCES } = require('../config')
 
 const socketConnectionRoutes = (socket) => {
     console.log(`Client connected: ${socket.id}`)
+    socket.emit('test', 'hi')
   
     socket.on('authenticate', (token) => {
+        console.log(token)
       jwt.verify(token, TERCES, (err, decoded) => {
           if (err) {
               socket.emit('auth-error', 'Invalid or expired token');

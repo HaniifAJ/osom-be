@@ -1,4 +1,4 @@
-const matches = new Map();
+let matches = new Map();
 const matchRepository = require('../repository/matchRepository')
 const userRepository = require('../repository/userRepository');
 const socketRepository = require('../repository/socketRepository')
@@ -200,11 +200,15 @@ const startPvP = async (io, userId) => {
             opponentMove: null
         }
 
+        console.log('opponent:', firstMatch.opponentId, secondMatch.opponentId)
+
         matches.set(firstMatch.userId, firstMatch)
+        console.log('testsss', firstMatch, secondMatch, userId, matches)
         matches.set(secondMatch.userId, secondMatch)
+        console.log('test', matches[userId])
         console.log('controller startMatch PvP:', firstMatch.userId, secondMatch.userId)
-        io.to(firstRes.userId).emit('game-started', {data: firstRes})
-        io.to(secondRes.userId).emit('game-started', {data: secondRes})
+        io.to(socketRepository.userSocket[firstRes.userId]).emit('game-started', {data: firstRes})
+        io.to(socketRepository.userSocket[secondRes.userId]).emit('game-started', {data: secondRes})
 
         waitingRoom = null
 
@@ -221,10 +225,12 @@ const updatePvP = async (io, userId, payload) => {
         if(!matches.has(userId)){
             throw new Error('Match not found.');
         }
-
-        const opponentId = matches[userId].opponentId
-        const playerMatch = matches[userId]
-        const opponentMatch = matches[opponentId]
+        console.log(userId)
+        console.log(matches[userId])
+        console.log(matches.get(userId))
+        const opponentId = matches.get(userId).opponentId
+        const playerMatch = matches.get(userId)
+        const opponentMatch = matches.get(opponentId)
         playerMatch.myMove = move
         opponentMatch.opponentMove = move
 

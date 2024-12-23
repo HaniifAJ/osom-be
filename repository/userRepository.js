@@ -95,7 +95,7 @@ const updateAvatar = async (user_id, avatarId) => {
 const updateHighscoreMatch = async (userId, newHighScore, totalMatch) => {
     try {
         console.log('upd', userId, newHighScore, totalMatch)
-        const result = await db.updateRow('users', userId, {highscore: newHighScore, total_matches: totalMatch + 1})
+        const result = await db.updateRow('users', userId, {highscore: newHighScore, total_matches: Number(totalMatch) + 1})
         console.log(result)
         return result
     } catch (error) {
@@ -107,7 +107,7 @@ const updateHighscoreMatch = async (userId, newHighScore, totalMatch) => {
 const updateTotalMatch = async (userId, totalMatch) => {
     try {
         console.log('upd', userId, totalMatch)
-        const result = await db.updateRow('users', userId, {total_matches: totalMatch + 1})
+        const result = await db.updateRow('users', userId, {total_matches: Number(totalMatch) + 1})
         console.log(result)
         return result
     } catch (error) {

@@ -23,8 +23,10 @@ const authMiddleware = async (req, res, next) => {
 
 const socketMiddleware = async (req, res, next) => {
     const userId = req.user.userId
+    console.log(userId, 'trying to access')
+    console.log(socketRepository.userSocket[8])
 
-    if(!socketRepository.userSocket.has(userId)){
+    if(socketRepository.userSocket.has(userId) == null){
         return res.status(401).json({ message: 'Akses ditolak. Please authenticate with your socket.' });
     }
 
