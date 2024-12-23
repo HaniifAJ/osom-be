@@ -389,7 +389,7 @@ const updatePvP = async (io, userId, payload) => {
                 opponent: opponentMatch.opponentId
             }
             const result1 = await matchRepository.registerMatch(newRow1)
-            const result2 = await matchRepository.registerMatch(newRow1)
+            const result2 = await matchRepository.registerMatch(newRow2)
 
             if(checkWin > 0) {
                 playerResponse = {...playerResponse, ...winResp}
@@ -410,7 +410,10 @@ const updatePvP = async (io, userId, payload) => {
             const checkUser2 = await userRepository.getUserById(opponentId)
             const otherUpdate2 = await userRepository.updateTotalMatch(opponentId, checkUser2.total_matches)
 
-            return {message: 'Match result will be sent'}
+
+            matches.delete(userId)
+            matches.delete(opponentId)
+            return {message: 'Match is over. Result will be sent'}
         }
 
         if(checkWin > 0) {
