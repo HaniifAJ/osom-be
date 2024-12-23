@@ -1,6 +1,7 @@
-const matches = new Map();
+let matches = new Map();
 const matchRepository = require('../repository/matchRepository')
-const userRepository = require('../repository/userRepository')
+const userRepository = require('../repository/userRepository');
+const socketRepository = require('../repository/socketRepository')
 
 const startMatch = async (userId, payload) => {
     try {
@@ -139,8 +140,307 @@ const getMatch = async (userId) => {
     return { match: matches.get(userId) }
 } 
 
+const abortMatch = async (userId) => {
+    if (!matches.has(userId)) {
+        throw new Error('Match not found.');
+    }
+    if(matches[userId].opponentId != null) {
+        throw new Error('Match is PvP. Please use Abort PvP instead.');
+    }
+    matches.delete(userId)
+    return { message: "Match is aborted"}
+}
+
+let waitingRoom = null
+
+const startPvP = async (io, userId) => {
+    try {
+        if(matches.has(userId)){
+            throw new Error('Match already exists for this user.');
+        }
+        if(waitingRoom == null) {
+            waitingRoom = {
+                userId: userId,
+                socketId: socketRepository.userSocket[userId]
+            }
+            console.log(`waiting room user ${userId} socket ${waitingRoom.socketId}`)
+            return {message: 'Waiting for player to match with...'}
+        }
+        const firstPlayer = await userRepository.getUserById(waitingRoom.userId)
+        const secondPlayer = await userRepository.getUserById(userId)
+        let firstRes = {
+            userId: waitingRoom.userId,
+            level: 1,
+            health: 5,
+            score: 0,
+            winstreak: 0,
+            opponentName: secondPlayer.fullname,
+            mode: 'pvp'
+        }
+        let firstMatch = {
+            ...firstRes,
+            opponentId: secondPlayer.id,
+            myMove: null,
+            opponentMove: null
+        }
+
+        let secondRes = {
+            userId: userId,
+            level: 1,
+            health: 5,
+            score: 0,
+            winstreak: 0,
+            opponentName: firstPlayer.fullname,
+            mode: 'pvp'
+        }
+        let secondMatch = {
+            ...secondRes,
+            opponentId: firstPlayer.id,
+            myMove: null,
+            opponentMove: null
+        }
+
+        console.log('opponent:', firstMatch.opponentId, secondMatch.opponentId)
+
+        matches.set(firstMatch.userId, firstMatch)
+        console.log('testsss', firstMatch, secondMatch, userId, matches)
+        matches.set(secondMatch.userId, secondMatch)
+        console.log('test', matches[userId])
+        console.log('controller startMatch PvP:', firstMatch.userId, secondMatch.userId)
+        io.to(socketRepository.userSocket[firstRes.userId]).emit('game-started', {data: firstRes})
+        io.to(socketRepository.userSocket[secondRes.userId]).emit('game-started', {data: secondRes})
+
+        waitingRoom = null
+
+        return {message: 'match successfully started'}
+    } catch (error) {
+        console.error('scope: matchController, startPvP:', error)
+        throw error
+    }
+}
+
+const updatePvP = async (io, userId, payload) => {
+    const { move } = payload
+    try {
+        if(!matches.has(userId)){
+            throw new Error('Match not found.');
+        }
+        console.log(userId)
+        console.log(matches[userId])
+        console.log(matches.get(userId))
+        const opponentId = matches.get(userId).opponentId
+        const playerMatch = matches.get(userId)
+        const opponentMatch = matches.get(opponentId)
+        playerMatch.myMove = move
+        opponentMatch.opponentMove = move
+
+        if(playerMatch.opponentMove == null) return {message: 'Your move has been successfully recorderd. Waiting for opponent move.'}
+
+        const checkWin = gameLogic(playerMatch.myMove, playerMatch.opponentMove)
+
+        if(checkWin == 0) {
+            console.log(`Draw ${userId} and ${opponentId}`)
+            let commonResp = {
+                message: 'Try again',
+                code: 0,
+                result: 'Draw',
+            }
+            let playerResponse = {
+                ...commonResp,
+                player_move: playerMatch.myMove,
+                opponent_move: playerMatch.opponentMove,
+                data: {
+                    userId: playerMatch.userId,
+                    level: playerMatch.level,
+                    health: playerMatch.health,
+                    score: playerMatch.score,
+                    winstreak: playerMatch.winstreak,
+                    opponentName: playerMatch.opponentName,
+                    mode: playerMatch.mode,
+                    addedHealth: 0,
+                }
+            }
+            let opponentResponse = {
+                ...commonResp,
+                player_move: opponentMatch.myMove,
+                opponent_move: opponentMatch.opponentMove,
+                data: {
+                    userId: opponentMatch.userId,
+                    level: opponentMatch.level,
+                    health: opponentMatch.health,
+                    score: opponentMatch.score,
+                    winstreak: opponentMatch.winstreak,
+                    opponentName: opponentMatch.opponentName,
+                    mode: opponentMatch.mode,
+                    addedHealth: 0,
+                }
+            }
+            io.to(socketRepository.userSocket[userId]).emit('match-result', {data: playerResponse})
+            io.to(socketRepository.userSocket[opponentId]).emit('match-result', {data: opponentResponse})
+            playerMatch.myMove = null, playerMatch.opponentMove = null
+            opponentMatch.myMove = null, opponentMatch.opponentMove = null
+            return {message: 'Match result will be sent'}
+        }
+
+        let multiplier1 = 1, multiplier2 = 1
+        if(playerMatch.winstreak + 1 >= 2) multiplier1 = 2
+        if(playerMatch.winstreak + 1 >= 4) multiplier1 = 3
+        if(playerMatch.winstreak + 1 >= 9) multiplier1 = 5
+        if(opponentMatch.winstreak + 1 >= 2) multiplier2 = 2
+        if(opponentMatch.winstreak + 1 >= 4) multiplier2 = 3
+        if(opponentMatch.winstreak + 1 >= 9) multiplier2 = 5
+
+        let addedHealth1 = 0, addedHealth2 = 0
+
+        
+        if(checkWin < 0) {
+            addedHealth1 = -1
+            multiplier1 = 0
+            playerMatch.winstreak = 0
+            opponentMatch.winstreak += 1
+            
+            playerMatch.health += addedHealth1
+            opponentMatch.health += addedHealth2
+            playerMatch.score += 100*multiplier1
+            opponentMatch.score += 100*multiplier2
+            playerMatch.level += 1
+            opponentMatch.level += 1
+        } else if (checkWin > 0) {
+            addedHealth2 = -1
+            multiplier2 = 0
+            opponentMatch.winstreak = 0
+            playerMatch.winstreak += 1
+
+            playerMatch.health += addedHealth1
+            opponentMatch.health += addedHealth2
+            playerMatch.score += 100*multiplier1
+            opponentMatch.score += 100*multiplier2
+            playerMatch.level += 1
+            opponentMatch.level += 1
+        }
+
+        let winResp = {
+            message: 'You Win',
+            code: 1,
+            result: 'Win',
+        }
+
+        let loseResp = {
+            message: 'You Lose',
+            code: -1,
+            result: 'Lose'
+        }
+
+        let playerResponse = {
+            player_move: playerMatch.myMove,
+            opponent_move: playerMatch.opponentMove,
+            data: {
+                userId: playerMatch.userId,
+                level: playerMatch.level,
+                health: playerMatch.health,
+                score: playerMatch.score,
+                winstreak: playerMatch.winstreak,
+                opponentName: playerMatch.opponentName,
+                mode: playerMatch.mode,
+                addedHealth: addedHealth1,
+            }
+        }
+
+        let opponentResponse = {
+            player_move: opponentMatch.myMove,
+            opponent_move: opponentMatch.opponentMove,
+            data: {
+                userId: opponentMatch.userId,
+                level: opponentMatch.level,
+                health: opponentMatch.health,
+                score: opponentMatch.score,
+                winstreak: opponentMatch.winstreak,
+                opponentName: opponentMatch.opponentName,
+                mode: opponentMatch.mode,
+                addedHealth: addedHealth2,
+            }
+        }
+        
+        if(playerMatch.health == 0 || opponentMatch.health == 0) {
+            let winResp = {
+                message: 'Match is over. You win.',
+                code: 2,
+                result: 'Win',
+            }
+    
+            let loseResp = {
+                message: 'Match is over. You lose.',
+                code: -2,
+                result: 'Lose'
+            }
+
+            const newRow1 = {
+                user_id: playerMatch.userId,
+                level: playerMatch.level,
+                score: playerMatch.score,
+                mode: playerMatch.mode,
+                opponent: playerMatch.opponentId
+            }
+            const newRow2 = {
+                user_id: opponentMatch.userId,
+                level: opponentMatch.level,
+                score: opponentMatch.score,
+                mode: opponentMatch.mode,
+                opponent: opponentMatch.opponentId
+            }
+            const result1 = await matchRepository.registerMatch(newRow1)
+            const result2 = await matchRepository.registerMatch(newRow2)
+
+            if(checkWin > 0) {
+                playerResponse = {...playerResponse, ...winResp}
+                opponentResponse = {...opponentResponse, ...loseResp}
+            }
+            else {
+                playerResponse = {...playerResponse, ...loseResp}
+                opponentResponse = {...opponentResponse, ...winResp}
+            }
+
+            io.to(socketRepository.userSocket[userId]).emit('match-result', {data: playerResponse})
+            io.to(socketRepository.userSocket[opponentId]).emit('match-result', {data: opponentResponse})
+            playerMatch.myMove = null, playerMatch.opponentMove = null
+            opponentMatch.myMove = null, opponentMatch.opponentMove = null
+
+            const checkUser1 = await userRepository.getUserById(userId)
+            const otherUpdate1 = await userRepository.updateTotalMatch(userId, checkUser1.total_matches)
+            const checkUser2 = await userRepository.getUserById(opponentId)
+            const otherUpdate2 = await userRepository.updateTotalMatch(opponentId, checkUser2.total_matches)
+
+
+            matches.delete(userId)
+            matches.delete(opponentId)
+            return {message: 'Match is over. Result will be sent'}
+        }
+
+        if(checkWin > 0) {
+            playerResponse = {...playerResponse, ...winResp}
+            opponentResponse = {...opponentResponse, ...loseResp}
+        }
+        else {
+            playerResponse = {...playerResponse, ...loseResp}
+            opponentResponse = {...opponentResponse, ...winResp}
+        }
+
+        io.to(socketRepository.userSocket[userId]).emit('match-result', {data: playerResponse})
+        io.to(socketRepository.userSocket[opponentId]).emit('match-result', {data: opponentResponse})
+        playerMatch.myMove = null, playerMatch.opponentMove = null
+        opponentMatch.myMove = null, opponentMatch.opponentMove = null
+        return {message: 'Match result will be sent'}
+    } catch (error) {
+        console.error('scope: matchController, updatePvP:', error)
+        throw error
+    }
+}
+
 module.exports = {
     startMatch,
     updateMatch,
-    getMatch
+    getMatch,
+    abortMatch,
+    startPvP,
+    updatePvP
 }

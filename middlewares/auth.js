@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const userRepository = require('../repository/userRepository')
+const socketRepository = require('../repository/socketRepository')
 
 const authMiddleware = async (req, res, next) => {
     const token = req.headers['authorization'];
@@ -20,4 +21,19 @@ const authMiddleware = async (req, res, next) => {
     }
 }
 
-module.exports = authMiddleware;
+const socketMiddleware = async (req, res, next) => {
+    const userId = req.user.userId
+    console.log(userId, 'trying to access')
+    console.log(socketRepository.userSocket[8])
+
+    if(socketRepository.userSocket.has(userId) == null){
+        return res.status(401).json({ message: 'Akses ditolak. Please authenticate with your socket.' });
+    }
+
+    next()
+}
+
+module.exports = {
+    authMiddleware,
+    socketMiddleware
+};
