@@ -4,7 +4,12 @@ const updateAvatar = async (user_id, avatar_id) => {
     try {
         const result = await userRepository.updateAvatar(user_id, avatar_id)
         console.log('controller:', result)
-        return result
+        const response = {
+            userId: result.userId,
+            fullname: result.fullname,
+            avatar_id: result.avatar_id,
+        }
+        return response
     } catch (error) {
         console.error('scope: userController, updateAvatar:', error)
         throw error
@@ -15,7 +20,18 @@ const getMyData = async (userId) => {
     try {
         const result = await userRepository.getUserById(userId)
         console.log('controller:', result)
-        return result
+        const response = {
+            userId: result.id,
+            email: result.email,
+            fullname: result.fullname,
+            avatar_id: result.avatar_id,
+            total_matches: result.total_matches,
+            highscore: result.highscore,
+            batu: result.batu,
+            gunting: result.gunting,
+            kertas: result.kertas
+        }
+        return response
     } catch (error) {
         console.error('scope: userController, getMyData:', error)
         throw error
@@ -54,8 +70,30 @@ const getLeaderboard = async (userId) => {
     }
 }
 
+const getPublicData = async (userId) => {
+    try {
+        const result = await userRepository.getUserById(userId)
+        console.log('controller:', result)
+        const response = {
+            userId: result.id,
+            fullname: result.fullname,
+            avatar_id: result.avatar_id,
+            total_matches: result.total_matches,
+            highscore: result.highscore,
+            batu: result.batu,
+            gunting: result.gunting,
+            kertas: result.kertas
+        }
+        return response
+    } catch (error) {
+        console.error('scope: userController, getPublicData:', error)
+        throw error
+    }
+}
+
 module.exports = {
     updateAvatar,
     getMyData,
     getLeaderboard,
+    getPublicData
 }

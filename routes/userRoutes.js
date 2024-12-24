@@ -48,6 +48,29 @@ router.get('/leaderboard', authMiddleware, async (req, res) => {
             data: result
         })
     } catch (error) {
+        console.error(error)
+        res.status(500).send(error)
+    }
+})
+
+router.get('/profile/:id', authMiddleware, async (req, res) => {
+    const userId = req.params.id
+    if(!userId) {
+        res.status(400).send({message: "Please input user Id"})
+        return
+    }
+    if(Number.isNaN(userId)) {
+        res.status(400).send({message: "User Id must be a number"})
+        return
+    }
+    try {
+        const result = await userController.getPublicData(Number(userId))
+        res.send({
+            message: 'get profile success',
+            data: result
+        })
+    } catch (error) {
+        console.error(error)
         res.status(500).send(error)
     }
 })
