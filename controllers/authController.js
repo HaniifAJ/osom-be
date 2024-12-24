@@ -24,7 +24,7 @@ const loginUser = async (payload) => {
         if(!checkPassword){
             throw new Error('Email or password is invalid')
         }
-        const token = jwt.sign({userId: checkUser.id, userData: checkUser}, TERCES, {
+        const token = jwt.sign({userId: checkUser.id}, TERCES, {
             expiresIn: '1h'
         })
         return token

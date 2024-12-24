@@ -14,7 +14,10 @@ const startMatch = async (userId, payload) => {
             health: 5,
             score: 0,
             winstreak: 0,
-            mode: payload.mode
+            mode: payload.mode,
+            batu: 0,
+            gunting: 0,
+            kertas: 0,
         }
         matches.set(userId, match)
         console.log('controller startMatch:', match)
@@ -40,6 +43,8 @@ const updateMatch = async (userId, payload) => {
         }
 
         const match = matches.get(userId)
+        match[payload.move] += 1
+        console.log('move +', match[payload.move])
         const moves = ['batu', 'gunting', 'kertas']
         const computerMove = moves[Math.floor(Math.random() * 3)]
         const checkWin = gameLogic(payload.move, computerMove)
@@ -79,9 +84,9 @@ const updateMatch = async (userId, payload) => {
                 const checkUser = await userRepository.getUserById(userId)
                 console.log(checkUser)
                 if(checkUser.highscore < match.score) {
-                    const doUpdate = await userRepository.updateHighscoreMatch(userId, match.score, checkUser.total_matches)
+                    const doUpdate = await userRepository.updateHighscoreMatch(userId, match.score, checkUser.total_matches, checkUser.batu + match.batu, checkUser.gunting + match.gunting, checkUser.kertas + match.kertas)
                 } else {
-                    const otherUpdate = await userRepository.updateTotalMatch(userId, checkUser.total_matches)
+                    const otherUpdate = await userRepository.updateTotalMatch(userId, checkUser.total_matches, checkUser.batu + match.batu, checkUser.gunting + match.gunting, checkUser.kertas + match.kertas)
                 }
                 matches.delete(userId)
                 return responseData
@@ -175,7 +180,10 @@ const startPvP = async (io, userId) => {
             score: 0,
             winstreak: 0,
             opponentName: secondPlayer.fullname,
-            mode: 'pvp'
+            mode: 'pvp',
+            batu: 0,
+            gunting: 0,
+            kertas: 0
         }
         let firstMatch = {
             ...firstRes,
@@ -191,7 +199,10 @@ const startPvP = async (io, userId) => {
             score: 0,
             winstreak: 0,
             opponentName: firstPlayer.fullname,
-            mode: 'pvp'
+            mode: 'pvp',
+            batu: 0,
+            gunting: 0,
+            kertas: 0
         }
         let secondMatch = {
             ...secondRes,
@@ -236,6 +247,10 @@ const updatePvP = async (io, userId, payload) => {
 
         if(playerMatch.opponentMove == null) return {message: 'Your move has been successfully recorderd. Waiting for opponent move.'}
 
+        playerMatch[playerMatch.myMove] += 1
+        opponentMatch[opponentMatch.myMove] += 1
+
+        console.log(playerMatch[move])
         const checkWin = gameLogic(playerMatch.myMove, playerMatch.opponentMove)
 
         if(checkWin == 0) {
@@ -258,6 +273,9 @@ const updatePvP = async (io, userId, payload) => {
                     opponentName: playerMatch.opponentName,
                     mode: playerMatch.mode,
                     addedHealth: 0,
+                    batu: playerMatch.batu,
+                    gunting: playerMatch.gunting,
+                    kertas: playerMatch.kertas,
                 }
             }
             let opponentResponse = {
@@ -273,6 +291,9 @@ const updatePvP = async (io, userId, payload) => {
                     opponentName: opponentMatch.opponentName,
                     mode: opponentMatch.mode,
                     addedHealth: 0,
+                    batu: opponentMatch.batu,
+                    gunting: opponentMatch.gunting,
+                    kertas: opponentMatch.kertas,
                 }
             }
             io.to(socketRepository.userSocket[userId]).emit('match-result', {data: playerResponse})
@@ -343,6 +364,9 @@ const updatePvP = async (io, userId, payload) => {
                 opponentName: playerMatch.opponentName,
                 mode: playerMatch.mode,
                 addedHealth: addedHealth1,
+                batu: opponentMatch.batu,
+                gunting: opponentMatch.gunting,
+                kertas: opponentMatch.kertas,
             }
         }
 
@@ -358,10 +382,16 @@ const updatePvP = async (io, userId, payload) => {
                 opponentName: opponentMatch.opponentName,
                 mode: opponentMatch.mode,
                 addedHealth: addedHealth2,
+                batu: opponentMatch.batu,
+                gunting: opponentMatch.gunting,
+                kertas: opponentMatch.kertas,
             }
         }
         
         if(playerMatch.health == 0 || opponentMatch.health == 0) {
+            playerMatch.level -= 1
+            opponentMatch.level -= 1
+
             let winResp = {
                 message: 'Match is over. You win.',
                 code: 2,
@@ -406,9 +436,9 @@ const updatePvP = async (io, userId, payload) => {
             opponentMatch.myMove = null, opponentMatch.opponentMove = null
 
             const checkUser1 = await userRepository.getUserById(userId)
-            const otherUpdate1 = await userRepository.updateTotalMatch(userId, checkUser1.total_matches)
+            const otherUpdate1 = await userRepository.updateTotalMatch(userId, checkUser1.total_matches, checkUser1.batu + playerMatch.batu, checkUser1.gunting + playerMatch.gunting, checkUser1.kertas + playerMatch.kertas)
             const checkUser2 = await userRepository.getUserById(opponentId)
-            const otherUpdate2 = await userRepository.updateTotalMatch(opponentId, checkUser2.total_matches)
+            const otherUpdate2 = await userRepository.updateTotalMatch(opponentId, checkUser2.total_matches, checkUser2.batu + opponentMatch.batu, checkUser2.gunting + opponentMatch.gunting, checkUser2.kertas + opponentMatch.kertas)
 
 
             matches.delete(userId)

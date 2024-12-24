@@ -14,7 +14,7 @@ const authMiddleware = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token.replace('Bearer ', ''), nothing);
         const user = await userRepository.getUserById(decoded.userId)
-        req.user = {userId: user.id, userData: user};
+        req.user = {userId: user.id};
         next();
     } catch (err) {
         return res.status(403).json({ message: 'Token tidak valid atau telah kedaluwarsa.' });
