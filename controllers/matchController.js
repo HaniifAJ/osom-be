@@ -84,9 +84,9 @@ const updateMatch = async (userId, payload) => {
                 const checkUser = await userRepository.getUserById(userId)
                 console.log(checkUser)
                 if(checkUser.highscore < match.score) {
-                    const doUpdate = await userRepository.updateHighscoreMatch(userId, match.score, checkUser.total_matches, checkUser.batu + match.batu, checkUser.gunting + match.gunting, checkUser.kertas + match.kertas)
+                    const doUpdate = await userRepository.updateHighscoreMatch(userId, match.score, Number(checkUser.total_matches), Number(checkUser.batu) + match.batu, Number(checkUser.gunting) + match.gunting, Number(checkUser.kertas) + match.kertas)
                 } else {
-                    const otherUpdate = await userRepository.updateTotalMatch(userId, checkUser.total_matches, checkUser.batu + match.batu, checkUser.gunting + match.gunting, checkUser.kertas + match.kertas)
+                    const otherUpdate = await userRepository.updateTotalMatch(userId, Number(checkUser.total_matches), Number(checkUser.batu) + match.batu, Number(checkUser.gunting) + match.gunting, Number(checkUser.kertas) + match.kertas)
                 }
                 matches.delete(userId)
                 return responseData
@@ -436,9 +436,9 @@ const updatePvP = async (io, userId, payload) => {
             opponentMatch.myMove = null, opponentMatch.opponentMove = null
 
             const checkUser1 = await userRepository.getUserById(userId)
-            const otherUpdate1 = await userRepository.updateTotalMatch(userId, checkUser1.total_matches, checkUser1.batu + playerMatch.batu, checkUser1.gunting + playerMatch.gunting, checkUser1.kertas + playerMatch.kertas)
+            const otherUpdate1 = await userRepository.updateTotalMatch(userId, checkUser1.total_matches, Number(checkUser1.batu) + playerMatch.batu, Number(checkUser1.gunting) + playerMatch.gunting, Number(checkUser1.kertas) + playerMatch.kertas)
             const checkUser2 = await userRepository.getUserById(opponentId)
-            const otherUpdate2 = await userRepository.updateTotalMatch(opponentId, checkUser2.total_matches, checkUser2.batu + opponentMatch.batu, checkUser2.gunting + opponentMatch.gunting, checkUser2.kertas + opponentMatch.kertas)
+            const otherUpdate2 = await userRepository.updateTotalMatch(opponentId, checkUser2.total_matches, Number(checkUser2.batu) + opponentMatch.batu, Number(checkUser2.gunting) + opponentMatch.gunting, Number(checkUser2.kertas) + opponentMatch.kertas)
 
 
             matches.delete(userId)
